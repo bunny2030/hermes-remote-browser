@@ -28,10 +28,10 @@ open, one at a time:
    - Check: `curl https://<host>/` must print `Hermes Remote Browser relay`.
    - Don't put an interactive login page (like Cloudflare Access) in front of it. The extension
      can't complete it. Pairing is the access control.
-2. **Extension.** On the user's computer, they download the repository
-   (https://github.com/bunny2030/hermes-remote-browser → Code → Download ZIP), unzip it, open
+2. **Extension.** On the user's computer, they download the extension zip from
+   https://github.com/bunny2030/hermes-remote-browser/releases/latest, unzip it, open
    `chrome://extensions`, switch on **Developer mode**, click **Load unpacked** and pick the
-   `extension` folder.
+   unzipped `hermes-remote-browser-extension` folder.
 3. **Pairing.** In the extension popup they enter `wss://<host>` and click **Pair this browser**.
    They read you the code (like `ABC-123`). Call `remote_browser` with
    `action: "approve_pairing", code: "ABC-123"`. Hermes asks them to confirm.
@@ -46,7 +46,8 @@ open, one at a time:
 - Then `snapshot` gives you the page text and numbered elements.
 - Then `click` / `type` / `select` with the element's `ref`.
 - `snapshot` again after anything changes the page, because refs change.
-- `screenshot` when layout matters. It brings that tab to the front of its window.
+- `screenshot` when layout matters: it saves an image and returns its path; look at it with
+  `vision_analyze`. It brings that tab to the front of its window.
 - To work on a page the user already has open, ask them to drag that tab into the purple
   Hermes group, then use `tabs` to find it.
 - If a call says not connected, the user needs to switch the extension on. It switches itself

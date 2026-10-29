@@ -1,5 +1,7 @@
 # Hermes Remote Browser
 
+![Hermes Remote Browser: your agent runs on a server, it uses the Chrome on your laptop](docs/preview.png)
+
 Let a [Hermes Agent](https://github.com/NousResearch/hermes-agent) running on a **home server or
 VPS** use the Chrome on **your own computer**, with your logged-in sites, across networks, with
 nothing installed on that computer except a browser extension.
@@ -24,9 +26,10 @@ the rest.
 server. With Cloudflare Tunnel, add a public hostname with service type **HTTP**, URL
 `localhost:9178`. Any HTTPS reverse proxy with websocket support works.
 
-**3. Add the extension to Chrome.** Download this repo (**Code → Download ZIP**), unzip it, open
-`chrome://extensions`, switch on **Developer mode**, click **Load unpacked**, and pick the
-`extension` folder.
+**3. Add the extension to Chrome.** Download `hermes-remote-browser-extension-*.zip` from the
+[latest release](https://github.com/bunny2030/hermes-remote-browser/releases/latest), unzip it,
+open `chrome://extensions`, switch on **Developer mode**, click **Load unpacked**, and pick the
+unzipped `hermes-remote-browser-extension` folder. (The same files are in `extension/` in this repo.)
 
 **4. Pair.** Click the purple **H** icon, enter `wss://your-hostname`, and click **Pair this
 browser**. Tell your agent "approve the browser code ABC-123" (Hermes asks you to confirm). Click
@@ -120,6 +123,13 @@ Set these in the environment Hermes runs with (e.g. its service file):
 ## Security model
 
 Read this before using it with accounts that matter.
+
+**What runs on your server:** one long-running background process, `relay.py`, started by the
+plugin. It listens on `127.0.0.1:9178` (only reachable through the HTTPS address you set up) and
+on an owner-only unix socket. It keeps its files in `~/.local/share/hermes-remote-browser`: the
+paired browsers (token hashes only), the socket and a log. It makes no outbound network calls,
+runs no shell commands and stores no credentials. The extension talks only to the address you
+enter.
 
 - **What the agent sees, its model provider sees.** Page text and screenshots go into the
   conversation, and from there to whatever LLM provider your Hermes uses. Pick providers you trust.

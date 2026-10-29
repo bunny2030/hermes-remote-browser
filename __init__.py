@@ -48,7 +48,8 @@ DESCRIPTION = (
     "Chrome; 'open' creates new tabs there. Works only while the user has the extension switched on: "
     "if it says not connected, ask them to open the extension in Chrome and switch it on. Typical loop: "
     "open a url -> snapshot (page text plus numbered elements [ref]) -> click/type by ref -> snapshot "
-    "again (refs change when the page changes). Use screenshot when the layout matters. Never enter "
+    "again (refs change when the page changes). Use screenshot when the layout matters (it returns an "
+    "image path for vision_analyze). Never enter "
     "passwords, payment details or 2FA codes (password fields are blocked); ask the user before anything "
     "outward-facing or hard to undo (sending, posting, buying, deleting, changing settings). "
     "For browsing that doesn't need the user's logins, prefer the normal browser tools."
@@ -201,38 +202,6 @@ def _save_image(data_url: str) -> Path:
     return path
 
 
-def _attach_image(result: dict, path: Path) -> dict | None:
-    """Image tool result for a model that can view it, or None to keep the text result."""
-    try:
-        from tools.vision_tools import (
-            _EMBED_MAX_DIMENSION,
-            _resize_image_for_vision,
-            _should_use_native_vision_fast_path,
-        )
-        from tools.vision_tools_history_budget import resolve_embed_target_bytes
-        if not _should_use_native_vision_fast_path():
-            return None
-        data_url = _resize_image_for_vision(
-            path, mime_type="image/jpeg", max_base64_bytes=resolve_embed_target_bytes(),
-            max_dimension=_EMBED_MAX_DIMENSION, force_jpeg=True,
-        )
-        if not isinstance(data_url, str) or not data_url.startswith("data:"):
-            return None
-        text = json.dumps(result, ensure_ascii=False)
-        return {
-            "_multimodal": True,
-            "text_summary": text,
-            "meta": {"screenshot_path": str(path), "native_vision": True},
-            "content": [
-                {"type": "text", "text": text + "\n\nThe screenshot is attached — inspect it with your native vision."},
-                {"type": "image_url", "image_url": {"url": data_url}},
-            ],
-        }
-    except Exception as exc:
-        log.debug("screenshot attach failed, returning text: %s", exc)
-        return None
-
-
 def remote_browser(args: dict, **kwargs) -> str | dict:
     args = dict(args or {})
     action = str(args.pop("action", "") or "")
@@ -267,8 +236,8 @@ def remote_browser(args: dict, **kwargs) -> str | dict:
     data = res.get("data") or {}
     if action == "screenshot" and isinstance(data.get("image"), str):
         path = _save_image(data.pop("image"))
-        payload = {"success": True, **data, "screenshot_path": str(path)}
-        return _attach_image(payload, path) or json.dumps(payload, ensure_ascii=False)
+        return _result(True, **data, screenshot_path=str(path),
+                       note="Look at it with vision_analyze on screenshot_path.")
     return _result(True, **data) if isinstance(data, dict) else _result(True, data=data)
 
 

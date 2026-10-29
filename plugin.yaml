@@ -1,6 +1,7 @@
 manifest_version: 1
 name: remote-browser
-version: 1.0.0
+version: "1.0.1"
+requires_hermes: ">=0.22.5"
 description: >-
   Drive a Chrome on another machine through the Hermes Remote Browser extension and the relay
   on this server. Only tabs in the "Hermes" tab group are reachable, and only while the user
