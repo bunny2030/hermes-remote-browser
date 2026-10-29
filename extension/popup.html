@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --bg: #fff; --fg: #1f1f23; --muted: #6b6b76; --line: #e6e6eb; --accent: #7c3aed; --ok: #16a34a; --warn: #ca8a04; --bad: #dc2626; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1d1d22; --fg: #ececf1; --muted: #9c9ca8; --line: #33333b; } }
+  body { margin: 0; width: 300px; background: var(--bg); color: var(--fg); font: 13px/1.45 system-ui, sans-serif; }
+  .wrap { padding: 14px 16px 16px; }
+  h1 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  h1 img { width: 20px; height: 20px; }
+  .status { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.connected { background: var(--ok); } .dot.connecting { background: var(--warn); }
+  .dot.pairing { background: var(--accent); } .dot.error { background: var(--bad); }
+  button { width: 100%; margin-top: 10px; padding: 9px; border: 0; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff; }
+  button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
+  button.off { background: var(--bad); }
+  input[type=text] { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 7px 8px; font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+  .code { font: 600 26px/1 ui-monospace, monospace; letter-spacing: 3px; text-align: center; padding: 12px 0 6px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .err { color: var(--bad); font-size: 12px; margin-top: 8px; }
+  label.row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  select { font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+  .note { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  code { font-size: 11px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><img src="icons/icon48.png" alt="">Hermes Remote Browser</h1>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">Off</span></div>
+
+  <section id="unpaired" hidden>
+    <label class="muted" for="server">Relay address</label>
+    <input type="text" id="server" placeholder="wss://browser.example.com" spellcheck="false">
+    <button id="pair">Pair this browser</button>
+  </section>
+
+  <section id="pairing" hidden>
+    <div class="code" id="code">···-···</div>
+    <p class="muted">Approve this code on your server: ask your agent to approve the browser code, or run <code>remote-browser approve CODE</code>. It expires in 5 minutes.</p>
+    <button class="secondary" id="cancelPair">Cancel</button>
+  </section>
+
+  <section id="paired" hidden>
+    <button id="toggle">Switch on</button>
+    <label class="row">Switch off automatically after
+      <select id="autoOff">
+        <option value="15">15 min</option>
+        <option value="60">1 hour</option>
+        <option value="240">4 hours</option>
+        <option value="0">never</option>
+      </select>
+    </label>
+    <p class="muted" id="until"></p>
+    <p class="muted">Relay: <span id="serverShown"></span></p>
+  </section>
+
+  <div class="err" id="error" hidden></div>
+
+  <div class="note muted">
+    The agent can only see and use tabs in the purple <b>Hermes</b> tab group. Drag a tab into it to share it; new tabs the agent opens land there too. Password fields are off-limits.
+    <div id="forgetWrap" hidden><button class="secondary" id="forget">Unpair this browser</button></div>
+  </div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

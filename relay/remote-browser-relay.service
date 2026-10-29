@@ -1,0 +1,13 @@
+[Unit]
+Description=Hermes Remote Browser relay (Chrome extension <-> Hermes agent)
+After=network-online.target
+
+[Service]
+# Paths assume the install steps in README.md; adjust if you put things elsewhere.
+ExecStart=%h/.local/share/hermes-remote-browser/venv/bin/python -I %h/.local/share/hermes-remote-browser/relay.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,14 @@
+manifest_version: 1
+name: remote-browser
+version: 1.0.0
+description: >-
+  Drive a Chrome on another machine through the Hermes Remote Browser extension and the relay
+  on this server. Only tabs in the "Hermes" tab group are reachable, and only while the user
+  has the extension switched on.
+author: Bunny
+license: MIT
+tags: [browser, chrome, remote, extension]
+provides_tools:
+  - remote_browser
+provides_hooks:
+  - pre_tool_call
