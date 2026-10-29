@@ -1,9 +1,13 @@
 """remote-browser for Hermes Agent: one ``remote_browser`` tool that drives a Chrome on another machine.
 
-The Hermes Remote Browser extension in that Chrome keeps a websocket open to the relay on this
-server (remote-browser-relay.service, ~/.local/share/hermes-remote-browser). This plugin talks to
-the relay's owner-only unix socket; the relay forwards each command to the extension and returns
-its answer.
+The Hermes Remote Browser extension in that Chrome keeps a websocket open to the relay (relay.py,
+shipped with this plugin). The plugin starts the relay on demand as a detached background process,
+so it survives Hermes restarts and is shared by every Hermes process on the machine; the relay
+itself makes sure only one copy runs. State (paired browsers, control socket, log) lives in
+~/.local/share/hermes-remote-browser, outside the plugin folder, so reinstalling keeps pairings.
+
+The plugin talks to the relay's owner-only unix socket; the relay forwards each command to the
+extension and returns its answer. The bundled skill (SKILL.md) walks through first-time setup.
 
 Safety:
 - The extension only exposes tabs in its "Hermes" tab group, refuses password fields, and is
@@ -19,16 +23,23 @@ import json
 import logging
 import os
 import socket
+import subprocess
+import sys
+import threading
 import time
 from pathlib import Path
 
 log = logging.getLogger("remote_browser.hermes")
 
 PLUGIN = "remote-browser"
-SOCK = Path(os.environ.get("REMOTE_BROWSER_HOME", Path.home() / ".local/share/hermes-remote-browser")) / "control.sock"
+HERE = Path(__file__).resolve().parent
+STATE = Path(os.environ.get("REMOTE_BROWSER_HOME", Path.home() / ".local/share/hermes-remote-browser"))
+SOCK = STATE / "control.sock"
+RELAY_LOG = STATE / "relay.log"
+PORT = int(os.environ.get("REMOTE_BROWSER_PORT", "9178"))
 TIMEOUT_S = 60
 
-ACTIONS = ["status", "pairing_requests", "approve_pairing", "tabs", "open", "snapshot", "click", "type", "select", "scroll", "key",
+ACTIONS = ["setup", "status", "pairing_requests", "approve_pairing", "tabs", "open", "snapshot", "click", "type", "select", "scroll", "key",
            "back", "screenshot", "close"]
 
 DESCRIPTION = (
@@ -50,6 +61,7 @@ SCHEMA = {
         "type": "object",
         "properties": {
             "action": {"type": "string", "enum": ACTIONS, "description": (
+                "setup: first-time setup checklist (relay, public address, extension folder, pairing). "
                 "status: is the bridge connected. pairing_requests: codes waiting for approval. "
                 "approve_pairing: approve the code the user read to you from the extension (code; the "
                 "user confirms on screen; only when the user asked you to pair). tabs: list Hermes-group tabs. open: load url (new tab "
@@ -94,6 +106,74 @@ def _relay(method: str, path: str, body: dict | None = None) -> dict:
         return json.loads(conn.getresponse().read() or b"{}")
     finally:
         conn.close()
+
+
+def _relay_alive() -> bool:
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(2)
+            s.connect(str(SOCK))
+        return True
+    except OSError:
+        return False
+
+
+_start_lock = threading.Lock()
+
+
+def _ensure_relay(wait_s: float = 8.0) -> bool:
+    """Start the relay if nothing answers on the control socket. True once it answers."""
+    if _relay_alive():
+        return True
+    with _start_lock:
+        if _relay_alive():
+            return True
+        STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
+        # Hermes's own interpreter, with this process's import path, so the relay finds aiohttp.
+        env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in sys.path if p))
+        with os.fdopen(os.open(RELAY_LOG, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600), "a") as logf:
+            subprocess.Popen([sys.executable, str(HERE / "relay.py")], cwd=str(STATE), env=env,
+                             stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT,
+                             start_new_session=True)
+        deadline = time.time() + wait_s
+        while time.time() < deadline:
+            if _relay_alive():
+                log.info("remote-browser relay started (port %s)", PORT)
+                return True
+            time.sleep(0.25)
+    log.warning("remote-browser relay did not start; see %s", RELAY_LOG)
+    return False
+
+
+def _log_tail(n: int = 6) -> str:
+    try:
+        return "\n".join(RELAY_LOG.read_text(errors="replace").splitlines()[-n:])
+    except OSError:
+        return ""
+
+
+def _setup_info() -> str:
+    running = _ensure_relay()
+    st = {}
+    if running:
+        with __import__("contextlib").suppress(Exception):
+            st = _relay("GET", "/status")
+    steps = []
+    if not running:
+        steps.append(f"The relay failed to start. Last log lines:\n{_log_tail()}")
+    steps += [
+        f"1. Public address: publish http://localhost:{PORT} on an HTTPS hostname that passes websockets "
+        "(e.g. a Cloudflare Tunnel public hostname, service type HTTP). The extension will use wss://<that host>.",
+        f"2. Extension: the user loads the folder {HERE / 'extension'} (or the extension/ folder from the "
+        "GitHub download) in chrome://extensions with Developer mode -> Load unpacked.",
+        "3. Pairing: in the extension popup the user enters wss://<host> and clicks Pair; they tell you the code "
+        "and you call approve_pairing with it (they confirm on screen).",
+        "4. The user clicks Switch on. Then status should say connected.",
+    ]
+    return _result(running, relay_running=running, local_port=PORT,
+                   extension_folder=str(HERE / "extension"),
+                   paired_browsers=[d.get("name") for d in st.get("devices", [])],
+                   connected=st.get("connected"), steps=steps)
 
 
 def _result(success: bool, **fields) -> str:
@@ -158,6 +238,10 @@ def remote_browser(args: dict, **kwargs) -> str | dict:
     action = str(args.pop("action", "") or "")
     if action not in ACTIONS:
         return _result(False, error=f"Unknown action {action!r}. Use one of: {', '.join(ACTIONS)}.")
+    if action == "setup":
+        return _setup_info()
+    if not _ensure_relay():
+        return _result(False, error=f"The remote browser relay could not start. Last log lines:\n{_log_tail()}")
     try:
         if action == "status":
             st = _relay("GET", "/status")
@@ -175,7 +259,7 @@ def remote_browser(args: dict, **kwargs) -> str | dict:
                            note="Paired. The extension switches itself on; check with action status.")
         res = _relay("POST", "/cmd", {"action": action, "params": args})
     except (FileNotFoundError, ConnectionRefusedError):
-        return _result(False, error="The remote browser relay is not running on this server (remote-browser-relay.service).")
+        return _result(False, error=f"The remote browser relay is not answering. Last log lines:\n{_log_tail()}")
     except (OSError, ValueError) as exc:
         return _result(False, error=f"Could not reach the remote browser relay: {exc}")
     if not res.get("ok"):
@@ -189,7 +273,20 @@ def remote_browser(args: dict, **kwargs) -> str | dict:
 
 
 def _available() -> bool:
-    return SOCK.exists()
+    return (HERE / "relay.py").is_file()
+
+
+def _skill_frontmatter(text: str) -> dict[str, str]:
+    """Flat ``key: value`` lines between the leading ``---`` markers of SKILL.md."""
+    if not text.startswith("---"):
+        return {}
+    head = text[3:].split("\n---", 1)[0]
+    data = {}
+    for line in head.splitlines():
+        key, sep, value = line.partition(":")
+        if sep and key.strip() and not key.startswith((" ", "#")):
+            data[key.strip()] = value.strip().strip("\"'")
+    return data
 
 
 def _on_pre_tool_call(tool_name: str = "", args: dict | None = None, task_id: str = "", **kwargs):
@@ -213,3 +310,14 @@ def register(ctx) -> None:
     ctx.register_tool(name="remote_browser", toolset=PLUGIN, schema=SCHEMA, handler=remote_browser,
                       check_fn=_available, emoji="🖥️")
     ctx.register_hook("pre_tool_call", _on_pre_tool_call)
+    skill = HERE / "SKILL.md"
+    if skill.is_file():
+        fm = _skill_frontmatter(skill.read_text(encoding="utf-8"))
+        try:
+            ctx.register_skill(PLUGIN, skill, description=fm.get("description", ""), frontmatter=fm)
+        except TypeError:   # older Hermes without the frontmatter argument
+            ctx.register_skill(PLUGIN, skill, description=fm.get("description", ""))
+        except Exception as exc:
+            log.warning("remote-browser: could not register the setup skill: %s", exc)
+    # Bring the relay up in the background so a browser can connect before the first tool call.
+    threading.Thread(target=_ensure_relay, name="remote-browser-relay-start", daemon=True).start()

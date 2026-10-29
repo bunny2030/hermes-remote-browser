@@ -3,7 +3,7 @@
 #   remote-browser status          connection, pending pairing codes, paired browsers
 #   remote-browser approve CODE    approve the code the extension shows
 #   remote-browser revoke ID       unpair a browser (id from status)
-#   remote-browser logs [N]        last N lines of the relay log (systemd user service)
+#   remote-browser logs [N]        last N lines of the relay log
 set -euo pipefail
 SOCK="${REMOTE_BROWSER_HOME:-$HOME/.local/share/hermes-remote-browser}/control.sock"
 call() { curl -sS --fail-with-body -m 20 --unix-socket "$SOCK" "$@"; }
@@ -14,6 +14,6 @@ case "${1:-status}" in
            call -X POST -H 'Content-Type: application/json' --data "$(json code "$2")" http://localhost/approve; echo ;;
   revoke)  [[ -n "${2:-}" ]] || { echo "usage: remote-browser revoke ID" >&2; exit 2; }
            call -X POST -H 'Content-Type: application/json' --data "$(json id "$2")" http://localhost/revoke; echo ;;
-  logs)    journalctl --user -u remote-browser-relay -n "${2:-40}" --no-pager ;;
+  logs)    tail -n "${2:-40}" "${REMOTE_BROWSER_HOME:-$HOME/.local/share/hermes-remote-browser}/relay.log" ;;
   *)       sed -n '2,6p' "$0"; exit 2 ;;
 esac

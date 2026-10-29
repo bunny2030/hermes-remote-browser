@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import fcntl
 import hashlib
 import hmac
 import json
@@ -261,10 +262,18 @@ async def _root(request: web.Request) -> web.Response:
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    HOME.mkdir(parents=True, exist_ok=True)
+    HOME.mkdir(parents=True, exist_ok=True, mode=0o700)
     if len(str(SOCK).encode()) > 107:   # Linux limit for unix socket paths
         raise SystemExit(f"{SOCK} is too long for a unix socket; set REMOTE_BROWSER_HOME to a shorter path.")
     os.umask(0o077)
+    # One relay per state directory. The Hermes plugin may try to start it from several processes
+    # (gateway, dashboard); the lock is held for the relay's whole life, so later starts just exit.
+    lock = open(HOME / "relay.lock", "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        log.info("another relay already runs for %s; exiting", HOME)
+        return
     bridge = Bridge()
 
     public = web.Application(client_max_size=1024)
