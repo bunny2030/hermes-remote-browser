@@ -6,6 +6,16 @@ Let a [Hermes Agent](https://github.com/NousResearch/hermes-agent) on a home ser
 Chrome on your own computer, across networks, with the sessions you're already logged into.
 Your computer needs only a browser extension: no companion app, VPN client or inbound ports.
 
+## See it in action
+
+[![Watch the 26-second demo: Hermes controls a logged-in GitHub session in Chrome on a separate laptop](docs/demo-poster.jpg)](docs/demo.mp4)
+
+[Watch the demo](docs/demo.mp4): a server-hosted Hermes agent uses Chrome on a separate laptop
+to find an existing GitHub issue, avoid creating a duplicate, and reopen it when asked.
+Playback is accelerated, pauses are cut, and audio is removed. Browser toolbar and desktop
+status details are covered. The recording uses the original **Penny Bridge** branding;
+this repo packages the bridge as **Hermes Remote Browser**.
+
 ![Hermes Remote Browser: your agent runs on a server, it uses the Chrome on your laptop](docs/preview.png)
 
 - Share tabs by moving them into the purple **Hermes** group. Other tabs stay out of reach.
