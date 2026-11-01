@@ -8,9 +8,9 @@ Your computer needs only a browser extension: no companion app, VPN client or in
 
 ## See it in action
 
-[![Watch the 26-second demo: Hermes controls a logged-in GitHub session in Chrome on a separate laptop](docs/demo-poster.jpg)](docs/demo.mp4)
+[![26-second demo: Hermes controls a logged-in GitHub session in Chrome on a separate laptop](docs/demo.gif)](docs/demo.mp4)
 
-[Watch the demo](docs/demo.mp4): a server-hosted Hermes agent uses Chrome on a separate laptop
+[Download the MP4](docs/demo.mp4?raw=1): a server-hosted Hermes agent uses Chrome on a separate laptop
 to find an existing GitHub issue, avoid creating a duplicate, and reopen it when asked.
 Playback is accelerated, pauses are cut, and audio is removed. Browser toolbar and desktop
 status details are covered. The recording uses the original **Penny Bridge** branding;
