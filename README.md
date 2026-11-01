@@ -1,21 +1,41 @@
 # Hermes Remote Browser
 
+**Your agent lives on a server. Your logged-in browser doesn't.**
+
+Let a [Hermes Agent](https://github.com/NousResearch/hermes-agent) on a home server or VPS use
+Chrome on your own computer, across networks, with the sessions you're already logged into.
+Your computer needs only a browser extension: no companion app, VPN client or inbound ports.
+
 ![Hermes Remote Browser: your agent runs on a server, it uses the Chrome on your laptop](docs/preview.png)
 
-Let a [Hermes Agent](https://github.com/NousResearch/hermes-agent) running on a **home server or
-VPS** use the Chrome on **your own computer**, with your logged-in sites, across networks, with
-nothing installed on that computer except a browser extension.
+- Share tabs by moving them into the purple **Hermes** group. Other tabs stay out of reach.
+- Switch access on yourself. It automatically switches off after your chosen interval and at browser start.
+- Keep using your own browser sessions. You don't need to copy cookies to the server.
+
+The server needs a public HTTPS hostname with websocket support. The extension currently installs
+through Chrome's **Load unpacked** flow. Page text and screenshots enter your Hermes conversation
+and may reach your model provider; read the [security model](#security-model) before sharing sensitive tabs.
+
+[Quick start](#quick-start) · [Cloudflare setup](docs/cloudflare-setup.md) ·
+[Troubleshooting](docs/troubleshooting.md) · [First-run test](docs/first-run-test.md)
+
+## Try it and tell us what breaks
+
+We're looking for the first five community testers running Hermes on a server and Chrome on a
+separate computer. Follow the [first-run checklist](docs/first-run-test.md), then
+[report your result](https://github.com/driftverse/hermes-remote-browser/issues/new?template=first-run.yml).
+A failed setup report is useful too. Please leave out tokens, private page contents and pairing codes.
 
 ## Quick start
 
 **1. Install the plugin.** Tell your Hermes agent:
 
-> Install the Hermes plugin https://github.com/bunny2030/hermes-remote-browser and set it up.
+> Install the Hermes plugin https://github.com/driftverse/hermes-remote-browser and set it up.
 
 Or run it yourself on the server:
 
 ```bash
-hermes plugins install bunny2030/hermes-remote-browser --enable
+hermes plugins install driftverse/hermes-remote-browser --enable
 ```
 
 Then restart Hermes. If you use the web dashboard / Hermes Desktop, restart that too. The relay
@@ -27,7 +47,7 @@ server. With Cloudflare Tunnel, add a public hostname with service type **HTTP**
 `localhost:9178`. Any HTTPS reverse proxy with websocket support works.
 
 **3. Add the extension to Chrome.** Download `hermes-remote-browser-extension-*.zip` from the
-[latest release](https://github.com/bunny2030/hermes-remote-browser/releases/latest), unzip it,
+[latest release](https://github.com/driftverse/hermes-remote-browser/releases/latest), unzip it,
 open `chrome://extensions`, switch on **Developer mode**, click **Load unpacked**, and pick the
 unzipped `hermes-remote-browser-extension` folder. (The same files are in `extension/` in this repo.)
 

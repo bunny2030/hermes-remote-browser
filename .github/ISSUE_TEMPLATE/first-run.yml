@@ -1,0 +1,63 @@
+name: First-run report
+description: Tell us how setup went, whether it worked or where it stopped.
+title: "[First run] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Hermes Remote Browser. Success reports and failed setups both help.
+        Do not post tokens, pairing codes, cookies, private page contents, devices.json or unreviewed logs/screenshots.
+        Replace your relay hostname with browser.example.com.
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Result
+      options:
+        - Setup and basic browsing worked
+        - Connected, but a browsing check failed
+        - Setup did not complete
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Server OS and Hermes version
+      placeholder: "Example: Ubuntu 24.04, Hermes version from hermes --version"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Computer OS and browser version
+      placeholder: "Example: Windows 11, Chrome 142"
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin release or commit and extension version
+    validations:
+      required: true
+  - type: input
+    id: proxy
+    attributes:
+      label: Tunnel or reverse proxy
+      placeholder: "Example: Cloudflare Tunnel; connector on the same host"
+    validations:
+      required: true
+  - type: input
+    id: duration
+    attributes:
+      label: Approximate setup time
+  - type: textarea
+    id: checks
+    attributes:
+      label: Which checks passed or failed?
+      description: "See docs/first-run-test.md. Include the exact step where you stopped and any redacted error."
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: What was confusing or missing?
+      description: "If everything worked, tell us what could still be clearer."

@@ -29,7 +29,7 @@ open, one at a time:
    - Don't put an interactive login page (like Cloudflare Access) in front of it. The extension
      can't complete it. Pairing is the access control.
 2. **Extension.** On the user's computer, they download the extension zip from
-   https://github.com/bunny2030/hermes-remote-browser/releases/latest, unzip it, open
+   https://github.com/driftverse/hermes-remote-browser/releases/latest, unzip it, open
    `chrome://extensions`, switch on **Developer mode**, click **Load unpacked** and pick the
    unzipped `hermes-remote-browser-extension` folder.
 3. **Pairing.** In the extension popup they enter `wss://<host>` and click **Pair this browser**.
